@@ -1,0 +1,31 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# PyTorch checkpoints (optional - see note below)
+*.pt
+# Ignore all checkpoints except the deployment model
+*.pth
+!denoiser_inference.pth
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test outputs
+verify_setup_output.png
+test_api_restored.png
+
+# Logs
+*.log
