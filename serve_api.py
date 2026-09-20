@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -7,7 +5,6 @@ import hashlib
 import json
 import math
 import os
-from pathlib import Path
 import secrets
 import shutil
 import sys
@@ -22,13 +19,10 @@ from typing import Optional
 
 import cv2
 import numpy as np
-from dotenv import load_dotenv
 from fastapi import (Depends, FastAPI, File, Form, HTTPException, Header,
                      Request, UploadFile, status)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
-
-load_dotenv(Path(__file__).with_name(".env"))
 
 # --------------------------------------------------------------------------- config
 
@@ -402,13 +396,20 @@ async def _unhandled(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=8000)
+    # Railway (and Render, Fly, most PaaS hosts) injects a PORT env var and only
+    # routes traffic to that exact port on 0.0.0.0 -- binding to 127.0.0.1 or a
+    # hardcoded port is the single most common reason a deploy shows "Application
+    # failed to respond" even though the build succeeded. These defaults make
+    # `python serve_api.py` with NO flags correct both locally and on Railway.
+    ap.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))
     ap.add_argument("--model", default=MODEL_PATH)
     ap.add_argument("--reload", action="store_true")
     a = ap.parse_args()
     os.environ["FORENSIC_MODEL"] = os.path.abspath(a.model)
     MODEL_PATH = os.path.abspath(a.model)
     import uvicorn
+    print(f"[serve_api] binding {a.host}:{a.port} "
+          f"(PORT env var: {os.environ.get('PORT', '<not set, using default>')})")
     uvicorn.run("serve_api:app" if a.reload else app, host=a.host, port=a.port,
                 reload=a.reload, log_level="info")

@@ -1,5 +1,5 @@
-# --- Verified together end-to-end on 2026-09-19: model loads, /v1/restore runs, ---
-# --- /health and /v1/model return correctly. See README "What was verified".   ---
+# --- Verified together end-to-end on 2026-09-19/20: model loads, /v1/restore runs, ---
+# --- /health and /v1/model return correctly. See README "What was verified".      ---
 #
 # torch pinned to 2.2.2, numpy pinned below 2.0 — together, deliberately, not
 # separately. PyTorch wheels built before ~2.3 use the NumPy 1.x C ABI; installing
@@ -9,21 +9,29 @@
 # upgrade torch to >=2.4 instead — untested in this repo, verify /v1/restore again
 # before trusting it.
 #
+# CPU-ONLY torch wheel, deliberately. Railway (and Render/Fly/Heroku on standard
+# plans) has no GPU, but a plain `torch==2.2.2` from PyPI still installs the CUDA
+# build plus ~3-4 GB of nvidia-*-cu12 packages that can never be used there —
+# it just makes the build slow and, on tighter build-resource plans, can fail
+# outright from disk pressure during the build step. The +cpu wheel skips all of
+# that (~190 MB instead of several GB) and runs identically for this project,
+# since nothing here does training — only inference.
+# If you deploy to a machine WITH a GPU: delete the two lines below this comment
+# block and instead run `pip install torch==2.2.2` (plain, from PyPI) followed by
+# a `pip install -r requirements.txt`, or see https://pytorch.org/get-started/locally/
+# for the exact CUDA-version index for your driver.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2+cpu
+numpy>=1.26,<2
+
 # opencv-python-headless and mediapipe pull opencv-contrib-python as a transitive
 # dependency; recent versions of both require numpy>=2, which conflicts with the
 # pin above. Capping opencv-python-headless below 4.11 keeps pip's resolver on
 # versions built for numpy<2 — confirmed with `pip install --dry-run` against this
 # exact file.
-torch==2.2.2
-numpy>=1.26,<2
-
 opencv-python-headless>=4.9,<4.11
+mediapipe>=0.10.15
 
 fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
-
-# GPU box: after installing this file, additionally run the matching CUDA index
-# from https://pytorch.org/get-started/locally/ for your driver version. Plain
-# `torch==2.2.2` from PyPI is CUDA 12.1-enabled already on Linux, so this is only
-# needed if that doesn't match your installed driver.

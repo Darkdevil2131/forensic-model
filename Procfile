@@ -1,1 +1,1 @@
-web: uvicorn serve_api:app --host 0.0.0.0 --port $PORT
+web: python serve_api.py
