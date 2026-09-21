@@ -1,11 +1,41 @@
-{
-  "$schema": "https://railway.com/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "startCommand": "python serve_api.py",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
-  }
-}
+diff --git a/nixpacks.toml b/nixpacks.toml
+index 317b63c..342073a 100644
+--- a/nixpacks.toml
++++ b/nixpacks.toml
+@@ -5,4 +5,21 @@ nixPkgs = [
+   "libGL",
+   "gcc",
+   "zlib"
+-]
+\ No newline at end of file
++]
++# nixPkgs only puts packages on PATH. Shared libraries must ALSO be listed in nixLibs to land on
++# LD_LIBRARY_PATH. mediapipe's libmediapipe.so needs libEGL / libGLESv2 from libGL; without this,
++# landmarks silently fall back to the Haar cascade ("OSError: libEGL.so.1 ..." in the logs).
++nixLibs = ["...", "libGL"]
++
++[phases.install]
++cmds = [
++  "python -m venv --copies /opt/venv",
++  "/opt/venv/bin/pip install -r requirements.txt",
++  # mediapipe depends on opencv-contrib-python (the GUI build, needs libGL.so.1). It shares the
++  # cv2/ folder with opencv-python-headless and overwrites its binary, which is what crashes
++  # `import cv2` at startup. Drop every OpenCV wheel, then put back only the headless one.
++  "/opt/venv/bin/pip uninstall -y opencv-python opencv-contrib-python opencv-python-headless opencv-contrib-python-headless",
++  "/opt/venv/bin/pip install --no-deps --force-reinstall 'opencv-python-headless>=4.9,<4.11'",
++  # fail the BUILD (not the running container) if a GUI OpenCV wheel is still installed
++  "! /opt/venv/bin/pip list --format=freeze | grep -i -E '^opencv-(contrib-)?python=='"
++]
+diff --git a/serve_api.py b/serve_api.py
+index 98cc07d..f04c3ac 100644
+--- a/serve_api.py
++++ b/serve_api.py
+@@ -236,7 +236,7 @@ async def _lifespan(app_):
+ 
+ app = FastAPI(title="Forensic face restoration API", version="4.0",
+               lifespan=_lifespan,
+-              description=__doc__.split("Endpoints")[0])
++              description=(__doc__ or "Forensic face restoration API.").split("Endpoints")[0])
+ 
+ _origins = [o.strip() for o in os.environ.get("FORENSIC_CORS_ORIGINS", "*").split(",")
+             if o.strip()]
