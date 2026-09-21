@@ -236,7 +236,7 @@ async def _lifespan(app_):
 
 app = FastAPI(title="Forensic face restoration API", version="4.0",
               lifespan=_lifespan,
-              description=__doc__.split("Endpoints")[0])
+              description=(__doc__ or "").split("Endpoints")[0].strip())
 
 _origins = [o.strip() for o in os.environ.get("FORENSIC_CORS_ORIGINS", "*").split(",")
             if o.strip()]

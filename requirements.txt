@@ -1,39 +1,31 @@
-# --- libGL / opencv-contrib-python fix, corrected version ---------------------
-# The previous fix here (mediapipe installed with --no-deps, but still listed in
-# this file too) did NOT actually work: pip's resolver evaluates a package's
-# declared dependencies as part of resolving requirements.txt even when that
-# package is already installed. So "mediapipe==0.10.33" appearing anywhere in
-# this file -- pinned or not -- was enough for pip to see it needs
-# opencv-contrib-python (the GL-linked build, confirmed directly against
-# mediapipe's own package metadata) and install it anyway, colliding with
-# opencv-python-headless below and crashing `import cv2` with libGL.so.1 missing.
-#
-# THE FIX: mediapipe is not listed in this file at all. It's installed as a
-# fully separate, standalone command in nixpacks.toml's install phase, which
-# never triggers a resolution of its dependencies. Verified directly: with this
-# exact file, opencv-contrib-python never gets installed, and cv2 + mediapipe
-# both import and function correctly together.
-#
-# torch pinned to 2.2.2, numpy pinned below 2.0 -- together, deliberately.
-# PyTorch wheels before ~2.3 use the NumPy 1.x C ABI; mixing with NumPy 2.x
-# crashes the first time torch touches a numpy array. If you want NumPy 2.x,
-# upgrade torch to >=2.4 instead -- untested here, re-verify /v1/restore after.
-#
-# CPU-ONLY torch wheel, deliberately -- Railway has no GPU, and plain
-# `torch==2.2.2` from PyPI installs several GB of unusable CUDA packages.
+# --- mediapipe is deliberately NOT listed in this file ----------------------
+# It is installed by the Dockerfile as a separate, standalone step:
+#     pip install --no-deps mediapipe==0.10.33
+# If mediapipe appears anywhere in this file -- pinned or not -- pip resolves
+# its declared dependency on opencv-contrib-python (the GL-linked build), which
+# collides with opencv-python-headless below and makes `import cv2` die with
+# libGL.so.1 missing. --no-deps in a separate command never triggers that
+# resolution.
+
+# CPU-only torch, deliberately. Railway has no GPU, and plain torch==2.2.2 from
+# PyPI pulls in several GB of unusable CUDA packages.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.2.2+cpu
+
+# numpy pinned below 2.0 to match torch 2.2.x, which is built against the NumPy
+# 1.x C ABI. To move to numpy 2.x, upgrade torch to >=2.4 first and re-verify
+# /v1/restore.
 numpy>=1.26,<2
 
 opencv-python-headless>=4.9,<4.11
 
-# mediapipe's OTHER real dependencies (checked directly against its package
-# metadata) -- these ARE listed here since mediapipe itself is installed with
-# --no-deps and won't pull them in on its own.
+# mediapipe 0.10.33's own dependencies, minus opencv-contrib-python. Listed
+# here because mediapipe is installed with --no-deps and will not pull them in.
 absl-py~=2.3
+certifi
 sounddevice~=0.5
 flatbuffers~=25.9
-matplotlib
+matplotlib>=3.8,<4
 
 fastapi>=0.110
 uvicorn[standard]>=0.29
