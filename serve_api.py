@@ -22,7 +22,7 @@ import numpy as np
 from fastapi import (Depends, FastAPI, File, Form, HTTPException, Header,
                      Request, UploadFile, status)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, HTMLResponse
 
 # --------------------------------------------------------------------------- config
 
@@ -243,6 +243,31 @@ _origins = [o.strip() for o in os.environ.get("FORENSIC_CORS_ORIGINS", "*").spli
 app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_credentials=False,
                    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
                    allow_headers=["X-API-Key", "Authorization", "Content-Type"])
+
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <html>
+    <head>
+        <title>Forensic AI API</title>
+    </head>
+    <body style="font-family:Arial;padding:40px;text-align:center;">
+        <h1>🧠 Forensic AI Restoration API</h1>
+        <p><b>Status:</b> Running ✅</p>
+
+        <h3>Endpoints</h3>
+
+        <p><a href="/health">/health</a></p>
+        <p>/v1/model (requires API key)</p>
+        <p>/v1/restore (POST)</p>
+        <p>/v1/reconstruct (POST)</p>
+
+        <hr>
+        <p>Powered by your trained NAFNet restoration model.</p>
+    </body>
+    </html>
+    """
 
 
 @app.get("/health")
