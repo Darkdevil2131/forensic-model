@@ -1,36 +1,39 @@
-# --- Verified together end-to-end on 2026-09-19/20: model loads, /v1/restore runs, ---
-# --- /health and /v1/model return correctly. See README "What was verified".      ---
+# --- libGL / opencv-contrib-python fix, corrected version ---------------------
+# The previous fix here (mediapipe installed with --no-deps, but still listed in
+# this file too) did NOT actually work: pip's resolver evaluates a package's
+# declared dependencies as part of resolving requirements.txt even when that
+# package is already installed. So "mediapipe==0.10.33" appearing anywhere in
+# this file -- pinned or not -- was enough for pip to see it needs
+# opencv-contrib-python (the GL-linked build, confirmed directly against
+# mediapipe's own package metadata) and install it anyway, colliding with
+# opencv-python-headless below and crashing `import cv2` with libGL.so.1 missing.
 #
-# torch pinned to 2.2.2, numpy pinned below 2.0 — together, deliberately, not
-# separately. PyTorch wheels built before ~2.3 use the NumPy 1.x C ABI; installing
-# them next to NumPy 2.x doesn't warn, it hard-crashes the first time torch touches
-# a numpy array ("RuntimeError: Numpy is not available"). This exact crash was
-# reproduced and fixed here. If you want NumPy 2.x (e.g. for another dependency),
-# upgrade torch to >=2.4 instead — untested in this repo, verify /v1/restore again
-# before trusting it.
+# THE FIX: mediapipe is not listed in this file at all. It's installed as a
+# fully separate, standalone command in nixpacks.toml's install phase, which
+# never triggers a resolution of its dependencies. Verified directly: with this
+# exact file, opencv-contrib-python never gets installed, and cv2 + mediapipe
+# both import and function correctly together.
 #
-# CPU-ONLY torch wheel, deliberately. Railway (and Render/Fly/Heroku on standard
-# plans) has no GPU, but a plain `torch==2.2.2` from PyPI still installs the CUDA
-# build plus ~3-4 GB of nvidia-*-cu12 packages that can never be used there —
-# it just makes the build slow and, on tighter build-resource plans, can fail
-# outright from disk pressure during the build step. The +cpu wheel skips all of
-# that (~190 MB instead of several GB) and runs identically for this project,
-# since nothing here does training — only inference.
-# If you deploy to a machine WITH a GPU: delete the two lines below this comment
-# block and instead run `pip install torch==2.2.2` (plain, from PyPI) followed by
-# a `pip install -r requirements.txt`, or see https://pytorch.org/get-started/locally/
-# for the exact CUDA-version index for your driver.
+# torch pinned to 2.2.2, numpy pinned below 2.0 -- together, deliberately.
+# PyTorch wheels before ~2.3 use the NumPy 1.x C ABI; mixing with NumPy 2.x
+# crashes the first time torch touches a numpy array. If you want NumPy 2.x,
+# upgrade torch to >=2.4 instead -- untested here, re-verify /v1/restore after.
+#
+# CPU-ONLY torch wheel, deliberately -- Railway has no GPU, and plain
+# `torch==2.2.2` from PyPI installs several GB of unusable CUDA packages.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.2.2+cpu
 numpy>=1.26,<2
 
-# opencv-python-headless and mediapipe pull opencv-contrib-python as a transitive
-# dependency; recent versions of both require numpy>=2, which conflicts with the
-# pin above. Capping opencv-python-headless below 4.11 keeps pip's resolver on
-# versions built for numpy<2 — confirmed with `pip install --dry-run` against this
-# exact file.
 opencv-python-headless>=4.9,<4.11
-mediapipe>=0.10.15
+
+# mediapipe's OTHER real dependencies (checked directly against its package
+# metadata) -- these ARE listed here since mediapipe itself is installed with
+# --no-deps and won't pull them in on its own.
+absl-py~=2.3
+sounddevice~=0.5
+flatbuffers~=25.9
+matplotlib
 
 fastapi>=0.110
 uvicorn[standard]>=0.29

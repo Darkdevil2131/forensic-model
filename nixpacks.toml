@@ -1,12 +1,8 @@
 [phases.setup]
-# libGL/glib removed on purpose -- they were never the actual fix (see the long
-# comment in requirements.txt). The real problem was opencv-contrib-python being
-# pulled in by mediapipe; that's now prevented at the pip level below, so no
-# system GL library is needed at all.
 nixPkgs = ["python311", "gcc", "zlib"]
 
 [phases.install]
 cmds = [
-  "pip install --no-cache-dir --no-deps mediapipe==0.10.33",
-  "pip install --no-cache-dir -r requirements.txt"
+  "pip install --no-cache-dir -r requirements.txt",
+  "pip install --no-cache-dir --no-deps mediapipe==0.10.33"
 ]
