@@ -1,8 +1,15 @@
 [phases.setup]
-nixPkgs = ["python311", "gcc", "zlib"]
+# python311Packages.pip added explicitly -- the python311 nix package alone doesn't
+# reliably put a standalone "pip" binary on PATH, which is what caused
+# "pip: command not found" (exit 127) in the last build.
+nixPkgs = ["python311", "python311Packages.pip", "gcc", "zlib"]
 
 [phases.install]
 cmds = [
-  "pip install --no-cache-dir -r requirements.txt",
-  "pip install --no-cache-dir --no-deps mediapipe==0.10.33"
+  # python3 -m pip instead of bare "pip" -- more robust even if the PATH issue
+  # above isn't fully resolved by the nixPkgs change alone, since this invokes
+  # pip as a module through the interpreter directly rather than relying on a
+  # separate pip executable being findable on PATH.
+  "python3 -m pip install --no-cache-dir -r requirements.txt",
+  "python3 -m pip install --no-cache-dir --no-deps mediapipe==0.10.33"
 ]
