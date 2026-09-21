@@ -1,0 +1,32 @@
+# Keep the build context small. denoiser_inference.pth is ~83 MB and IS needed
+# at runtime, so it is deliberately NOT ignored -- but .git roughly doubles the
+# upload for no reason.
+.git
+.gitignore
+.github
+
+__pycache__/
+*.py[cod]
+*.pyo
+
+venv/
+.venv/
+.env
+
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Dev-only files, not needed inside the image
+README.md
+image.png
+test_api.py
+test_person_frame*.jpg
+download_ffhq_samples.py
+verify_setup_output.png
+test_api_restored.png
+*.log
+
+# Superseded by this Dockerfile
+nixpacks.toml
+Procfile
